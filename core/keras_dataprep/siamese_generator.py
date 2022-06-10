@@ -27,6 +27,7 @@ class SiameseDataGenerator(tf.keras.utils.Sequence):
 
         self.anomaly_indices = np.arange(len(self.anomaly_traces))
         self.normal_indices = np.arange(len(self.normal_traces))
+        self.normal_indexes = None
         self.rdm_normal_traces = None
         self.n_channels = n_channels
         self.normal_index = 0
@@ -85,7 +86,7 @@ class SiameseDataGenerator(tf.keras.utils.Sequence):
             np.random.shuffle(self.anomaly_indices)
             np.random.shuffle(self.normal_indices)
 
-        self.normal_indices = np.random.choice(self.normal_size - 1,
+        self.normal_indexes = np.random.choice(self.normal_size - 1,
                                                size=self.samples_per_batch * self.num_anomalies_batch,
                                                replace=False,
                                                p=None)

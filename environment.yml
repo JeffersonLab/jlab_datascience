@@ -1,0 +1,9 @@
+name: jlab_datascience
+dependencies:
+  - python=3.9
+  - matplotlib
+  - numpy
+  - pandas
+  - scikit-learn
+  - jupyterlab
+  - bokeh

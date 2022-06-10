@@ -13,9 +13,9 @@
 ├── setup.py                          : Python setup file with requirements files
 ├── core                	          : folder with dnc2s_rl code
     └── __init__.py                   : make base classes visible
-    ├── keras_model         	      : folder containing models
+    ├── keras_models         	      : folder containing models
         └── __init__.py               : make base classes visible
-        └── siamese_model.py          : agent base class
+        └── siamese_models.py         : agent base class
 
 ```
 

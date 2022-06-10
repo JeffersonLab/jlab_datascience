@@ -23,7 +23,6 @@ import core.keras_models.siamese_models as sms
 from core.keras_models.callbacks import ResetCovarianceCallback
 import core.keras_models.losses as losses
 import core.keras_dataprep.siamese_generator as sg
-import tensorflow.keras as keras
 
 data_dir = '/work/datascience/'
 train_generator = sg.SiameseDataGenerator(
@@ -50,22 +49,22 @@ with my_strategy.scope():
                                        input_shape=(trace_length, 1), dropPercentage=drop_percentage,
                                        lambdaShift=lambda_shift, **{'activation': "sigmoid"})
 
-    opt = keras.optimizers.Adam(learning_rate=1e-5)
+    opt = tf.keras.optimizers.Adam(learning_rate=1e-5)
     model.compile(loss=losses.closs(margin=1, alpha=2), optimizer=opt, metrics=['accuracy'])
     model.summary()
 
 now = datetime.now()
 timestamp = now.strftime("D%m%d%Y-T%H%M%S")
 checkpoint_filepath = '/work/data_science/kishan/model-checkpoints/EB/sngp_siamese-tfdata-{}-v1'.format(timestamp)
-model_ckpt = keras.callbacks.ModelCheckpoint(
+model_ckpt = tf.keras.callbacks.ModelCheckpoint(
     filepath=checkpoint_filepath,
     save_best_only=False,
     save_weights_only=False,
     save_freq="epoch",
     monitor='val_accuracy',
     mode='max')
-reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.85, patience=5, min_lr=1e-6, verbose=1)
-early_stopping = keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0, patience=20, verbose=1, mode='auto',
+reduce_lr = tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.85, patience=5, min_lr=1e-6, verbose=1)
+early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0, patience=20, verbose=1, mode='auto',
                                                baseline=None, restore_best_weights=True)
 
 fit_config = dict(epochs=400)

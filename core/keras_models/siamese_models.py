@@ -159,18 +159,3 @@ class SiameseModelWithResNet(ResNet1D):
                                         **self.classifier_kwargs)
         else:
             return tf.keras.layers.Dense(self.nClasses, activation="sigmoid")
-        
-    def summary(self):
-        x = tf.keras.layers.Input(self.inp_shape)
-        y = tf.keras.layers.Input(self.inp_shape)
-        return tf.keras.models.Model(inputs=[x, y], outputs=self.call([x, y])).summary()
-    
-    def plot(self):
-        x = tf.keras.layers.Input(self.inp_shape)
-        y = tf.keras.layers.Input(self.inp_shape)
-        return tf.keras.utils.plot_model(
-            tf.keras.models.Model(inputs=[x, y], outputs=self.call([x, y])),     # here is the trick (for now)
-            dpi=96, 
-            show_shapes=True, show_layer_names=True,  # show shapes and layer name
-            expand_nested=False                       # will show nested block
-        )

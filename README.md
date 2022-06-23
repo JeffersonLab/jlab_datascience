@@ -38,3 +38,11 @@ conda activate jlab_datascience (required every time you use the package)
 ```
 pip install -e . 
 ```
+
+## If you plan to use examples, you need to install these additional dependency
+* Install SUF SNS dependancy (via pip):
+```
+git clone https://code.ornl.gov/ml/lib/binary-storage.git
+cd binary-storage/py/
+pip install -e . 
+```

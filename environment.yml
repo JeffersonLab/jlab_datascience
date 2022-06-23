@@ -7,3 +7,6 @@ dependencies:
   - scikit-learn
   - jupyterlab
   - bokeh
+  - tensorflow
+  - tf.models.official
+  - scipy

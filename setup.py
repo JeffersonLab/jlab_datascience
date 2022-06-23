@@ -6,6 +6,6 @@ setup(
    description='JLab Data Science Toolkit',
    authors=['Malachi Schram', 'Kishansingh Rajput'],
    authors_email=['schram@jlab.org', 'kishan@jlab.org'],
-   packages=['core'],
+   packages=['core', 'examples'],
    install_requires=['pandas', 'numpy', 'matplotlib', 'seaborn', 'sklearn', 'scipy', 'tqdm', 'jupyter'],
 )

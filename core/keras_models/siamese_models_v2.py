@@ -1,5 +1,4 @@
 import tensorflow as tf
-from suf_sns.keras_models.callbacks import ResetCovarianceCallback
 import tensorflow.keras as keras
 import tensorflow.keras.backend as K
 try:

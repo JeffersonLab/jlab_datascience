@@ -1,12 +1,17 @@
-import mlflow
+# Org: Thomas Jefferson National Accelerator Facility
+# Script: HPO+NAS for Siamese model
+# Author: Kishan Rajput
+# Date last updated: 02-09-2023
+
+# Import HPO/NAS packages
+import mlflow 
 from hyperopt import fmin, tpe, hp, Trials, STATUS_OK
 
+# import core packages
 import core.keras_models.losses as losses
 from core.keras_models.siamese_models_v2 import siameseModelWithResNet
-from core.keras_models.callbacks import ResetCovarianceCallback
 import core.keras_dataprep.siamese_generator_v2 as sg
-# from suf_sns.visualization.ML_vis import plt_metric, getROC_Band, getSeparationPlot, getROC
-from sklearn.metrics import roc_curve, accuracy_score, roc_auc_score
+from sklearn.metrics import roc_curve, accuracy_score
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
@@ -14,8 +19,10 @@ import random
 from functools import partial
 import shutil
 import os
+# set TF deterministic behavior on for reproducibility
 os.environ['TF_DETERMINISTIC_OPS'] = '1'
 
+# initiate ML-Flow parameters
 experiment_name = "Siamese_HPO_NAS"
 try:
     experiment_id = mlflow.create_experiment(f"{experiment_name}")
@@ -35,7 +42,12 @@ print("Artifact Location: {}".format(experiment.artifact_location))
 print("Tags: {}".format(experiment.tags))
 print("Lifecycle_stage: {}".format(experiment.lifecycle_stage))
 
-def get_predictions_deterministic_v0(model, generator, n):
+
+def get_predictions_deterministic(model, generator, n):
+    """
+    # Function to run predictions on data generator and return the results. The predictions are averaged over N references
+    # This function assumes that the data generator is built with 1 anomaly and N normal references per batch
+    """
     predictions, labels = [], []
     for i in range(n):
         (xl, xr), y = generator.__getitem__(i)
@@ -47,23 +59,30 @@ def get_predictions_deterministic_v0(model, generator, n):
     predictions, labels = np.array(predictions), np.array(labels)
     return predictions, labels
 
-def get_predictions_deterministic(model, generator, n):
-    predictions, labels = [], []
-    for j in range(n):
-        (xl, xr), y = generator.__getitem__(j)
-        unique_normal = np.unique(xr[np.where(y==0)[0]], axis=0)
-        unique_anomaly = np.unique(xr[np.where(y==1)[0]], axis=0)
-        preds = model((xl, xr))
-        preds = np.squeeze(np.array(preds))
-        for i, normal in enumerate(unique_normal):
-            anomaly = unique_anomaly[i]
-            pred0 = np.mean(preds[np.where(xr == normal)[0]])
-            pred1 = np.mean(preds[np.where(xr == anomaly)[0]])
-            predictions.extend([pred0, pred1])
-            labels.extend([0., 1.])
-    predictions = np.array(predictions)
-    labels = np.array(labels)
-    return predictions, labels
+def get_predictions_UQ(model, generator, n):
+    """
+    # Function to run predictions on data generator with distance aware model and return the results. The predictions are averaged over N references
+    # This function assumes that the data generator is built with 1 anomaly and N normal references per batch
+    """
+    predictions, uncertainties, labels = [], [], []
+    for i in range(n):
+        (xl, xr), y = generator.__getitem__(i)
+        preds, info = model((xl, xr), return_covmat=True)
+        cov_mat = info['covmat']
+        cov_mat_diag = np.diag(cov_mat)
+
+        normal_indices = y == 0
+        abnormal_indices = y == 1
+        pred0 = np.mean(preds[normal_indices])
+        pred1 = np.mean(preds[abnormal_indices])
+        cov_mat_diag0 = np.mean(cov_mat_diag[normal_indices])
+        cov_mat_diag1 = np.mean(cov_mat_diag[abnormal_indices])
+        predictions.extend([pred0, pred1])
+        uncertainties.extend([cov_mat_diag0, cov_mat_diag1])
+        labels.extend([0., 1.])
+    predictions, uncertainties, labels = np.array(predictions), np.array(uncertainties), np.array(labels)
+    return predictions, uncertainties, labels
+
 
 def evaluate_model(predictions, labels):
     loss = np.mean(np.square(predictions-labels))
@@ -72,8 +91,11 @@ def evaluate_model(predictions, labels):
     return loss, accuracy, tpr
 
 def get_tpr(labels, predictions, false_positive_rate):
+    """
+    Returns true-positive-rate at a given false-positive-rate
+    """
     fpr, tpr, ths = roc_curve(labels, predictions)
-    return np.interp([0.005], fpr, tpr)[0]
+    return np.interp([false_positive_rate], fpr, tpr)[0]
 
 def plt_metric(history, metric, title, has_valid=True, saveloc=None):
     """Plots the given 'metric' from 'history'.
@@ -100,6 +122,9 @@ def plt_metric(history, metric, title, has_valid=True, saveloc=None):
     plt.show()
     
 def getROC(labels, predictions, names, xlimit=[0, 1], ylimit=[0, 1], saveloc=None):
+    """
+    Plots ROC curve
+    """
     plt.clf()
     fig= plt.figure(figsize=(8,6),dpi=100)
     from sklearn.metrics import roc_curve, roc_auc_score
@@ -210,7 +235,7 @@ def _train_SNGP(params, hyperopt=False):
     # Train model on dataset
     history = model.fit(train_generator,
                             validation_data=val_generator,
-                            epochs=2,
+                            epochs=500,
                             callbacks=[reduce_lr, early_stopping])
 
     # model.save(os.path.join(output_dir, "SiameseWithoutAutoEncoder_2022.12.06_OctFeb_WithNormSeed"+str(seed_value)))
@@ -340,7 +365,7 @@ with mlflow.start_run():
     argmin = fmin(fn=fn,
                   space=search_space,
                   algo=algorithm,
-                  max_evals=10,
+                  max_evals=25,
                   trials=trials)
 
     print("==========================================")

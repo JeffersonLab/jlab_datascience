@@ -1,12 +1,16 @@
 name: jlab_datascience
 dependencies:
   - python=3.9
-  - matplotlib
-  - numpy
-  - pandas
-  - scikit-learn
-  - jupyterlab
-  - bokeh
-  - tensorflow
-  - tf.models.official
-  - scipy
+  - pip
+  - pip:
+    - matplotlib
+    - numpy
+    - pandas
+    - scikit-learn
+    - jupyter
+    - bokeh
+    - tensorflow
+    - tf-models-official
+    - scipy
+    - mlflow
+    - hyperopt

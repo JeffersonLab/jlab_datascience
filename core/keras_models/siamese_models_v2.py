@@ -163,7 +163,16 @@ class SiameseModelSNGP_DenseOnly(tf.keras.Model):
 
 class ResNet1D(tf.keras.Model):
     """ResNet Model with or without Spectral Normalization"""
-    def __init__(self, input_shape=(10000, 1), spec_norm_bound=0.9, num_filters=[32, 64, 128], strides=[2,2,2], dropPercentage=0.05, UQ=False, decoder=False):
+    def __init__(self, 
+                 input_shape=(10000, 1), 
+                 spec_norm_bound=0.9, 
+                 num_filters=[32, 64, 128], 
+                 strides=[2,2,2], 
+                 kernel_sizes=(3,3,3),
+                 activations=("relu", "relu", "relu"),
+                 dropouts=(0.05, 0.05, 0.05), 
+                 UQ=False, 
+                 decoder=False):
         
         if len(num_filters) != len(strides):
             print("Error!!! Arrays containing Number of filters and Strides information should be of same length.")
@@ -171,26 +180,25 @@ class ResNet1D(tf.keras.Model):
     
         self.spec_norm_bound = spec_norm_bound
         super().__init__()
-        self.num_filters = num_filters
         self.inp_shape = input_shape
         self.UQ = UQ
-        self.strides=strides
-        self.dropPercentage = dropPercentage
         self.input_layer = tf.keras.layers.Input(shape=self.inp_shape)
-        self.id_layers = [self.make_conv1d(filters=self.num_filters[i], k_size=(1), strides=(1))
+        self.id_layers = [self.make_conv1d(filters=num_filters[i], k_size=(1), strides=(1))
                          for i in range(len(num_filters))]
-        
-        self.conv_layers = [self.make_conv1d(filters=self.num_filters[i], strides=self.strides[i])
+        print("num_filters: ", num_filters)
+        print("strides: ", strides)
+        print("k_size: ", kernel_sizes)
+        print("activations: ", activations)
+        self.conv_layers = [self.make_conv1d(filters=num_filters[i], strides=strides[i], k_size=kernel_sizes[i], activation=activations[i])
                            for i in range(len(num_filters))]
         # if not sesiameseModelWithResNetlf.UQ:
         self.BN_layers = [self.make_BN_layers() for _ in range(len(num_filters))]
         self.BN_layers_id = [self.make_BN_layers() for _ in range(len(num_filters))]
             
-        self.maxpool_layers = [tf.keras.layers.MaxPool1D(pool_size=2, strides=2, padding="same") 
-                               for _ in range(len(num_filters))]
-        self.dense_layer = self.make_dense_layer(1, activation="relu")
-        self.activation_layers = [tf.keras.layers.Activation("relu") for _ in range(len(num_filters))]
-        self.dropout_layers = [tf.keras.layers.Dropout(self.dropPercentage) for _ in range(len(num_filters))]
+        self.maxpool_layers = [tf.keras.layers.MaxPool1D(pool_size=2, strides=2, padding="same") for _ in range(len(num_filters))]
+        self.dense_layer = self.make_dense_layer(1, activation=activations[-1])
+        self.activation_layers = [tf.keras.layers.Activation(activations[i]) for i in range(len(activations))]
+        self.dropout_layers = [tf.keras.layers.Dropout(dropouts[i]) for i in range(len(dropouts))]
         self.Add_layers = [tf.keras.layers.Add() for _ in range(len(num_filters))]
         self.decoder = decoder
 
@@ -217,7 +225,7 @@ class ResNet1D(tf.keras.Model):
     def call(self, inputs, training=False, return_last_conv=False):
         "Model call function"
         hidden = inputs
-        for i in range(len(self.num_filters)):
+        for i in range(len(self.conv_layers)):
             if i > 1:
                 #Id Block
                 id_out = self.id_layers[i-1](hidden)
@@ -291,27 +299,49 @@ class ResNet1D(tf.keras.Model):
 class siameseModelWithResNet(ResNet1D):
     """
     """
-    def __init__(self, input_shape=(10000, 1), spec_norm_bound=0.9, num_filters=[32, 64, 128], 
-                 strides=[2,2,2], dropPercentage=0.05, UQ=False, 
-                distanceMetric="l2", CommonDense_nodes=[64], CommonDrop_percentage=[0.15], nClasses=1, lambdaShift=-10, decoder=None,
+    def __init__(self, 
+                 input_shape=(10000, 1), 
+                 spec_norm_bound=0.9, 
+                 num_filters=[32, 64, 128], 
+                 strides=[2,2,2], 
+                 kernel_sizes=(3,3,3),
+                 activations=('relu', 'relu', 'relu'),
+                 dropouts=(0.05, 0.05, 0.05),
+                 UQ=False, 
+                 distanceMetric="l2", 
+                 CommonDense_nodes=[64], 
+                 CommonDrop_percentage=[0.15], 
+                 dense_activations=('linear'),
+                 distance_dropout=0.2,
+                 nClasses=1, 
+                 lambdaShift=-10, 
+                 decoder=None,
                  **classifier_kwargs):
         self.decoder_flag = False
         if decoder != None:
             self.decoder_flag = True
-        super().__init__(input_shape=input_shape, spec_norm_bound=spec_norm_bound, num_filters=num_filters, 
-                 strides=strides, dropPercentage=dropPercentage, UQ=UQ, decoder=self.decoder_flag)
+        super().__init__(input_shape=input_shape, 
+                         spec_norm_bound=spec_norm_bound, 
+                         num_filters=num_filters, 
+                         strides=strides, 
+                         kernel_sizes=kernel_sizes,
+                         activations=activations,
+                         dropouts=dropouts, 
+                         UQ=UQ, 
+                         decoder=self.decoder_flag)
         
         self.UQ = UQ
         self.nClasses = nClasses
         self.distanceMetric = distanceMetric
+        self.distance_dropout = distance_dropout
         self.classifier_kwargs = classifier_kwargs
         self.decoder = decoder
+        
         self.L1_layer = tf.keras.layers.Lambda(lambda tensors: K.abs(tensors[0] - tensors[1])+lambdaShift, 
                                                name='L1_distance')
         self.L2_layer = tf.keras.layers.Lambda(lambda tensors: K.abs(K.square(tensors[0]) - K.square(tensors[1]))+lambdaShift, 
                                                name='L2_distance')
-        self.CommonDense_layers = [self.make_dense_layer(n, activation="linear")
-                                  for n in CommonDense_nodes]
+        self.CommonDense_layers = [self.make_dense_layer(CommonDense_nodes[i], activation=dense_activations[i]) for i in range(len(CommonDense_nodes))]
         self.CommonDrop_layers = [tf.keras.layers.Dropout(d) for d in CommonDrop_percentage]
         self.classifier = self.make_output_layer()
         
@@ -335,7 +365,7 @@ class siameseModelWithResNet(ResNet1D):
             distance = self.L2_layer([encodedL, encodedR])
         else:
             distance = self.L1_layer([encodedL, encodedR])
-        hidden = tf.keras.layers.Dropout(0.2)(distance)
+        hidden = tf.keras.layers.Dropout(self.distance_dropout)(distance)
 
         for i in range(len(self.CommonDense_layers)):
             hidden = self.CommonDense_layers[i](hidden)

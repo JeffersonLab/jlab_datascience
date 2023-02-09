@@ -6,8 +6,11 @@ import pickle
 class SiameseDataGenerator(keras.utils.Sequence):
     ' Generates siamese data for Keras '
 
-    def __init__(self, good_file, bad_file, num_anomalies_batch=1, samples_per_anomaly_batch=1, shuffle=True, n_channels=1, before_index=-1, mpsLabels=None, min_max_norm=None, decoder=None):
+    def __init__(self, good_file, bad_file, num_anomalies_batch=1, samples_per_anomaly_batch=1, shuffle=True, n_channels=1, before_index=-1, mpsLabels=None, min_max_norm=None, decoder=None, seed=0):
         'Initialization'
+        os.environ['PYTHONHASHSEED']=str(seed)
+        np.random.seed(seed)
+
         self.shuffle = shuffle
         self.samples_per_batch = samples_per_anomaly_batch
         self.num_anomalies_batch = num_anomalies_batch

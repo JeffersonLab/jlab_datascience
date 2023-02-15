@@ -182,6 +182,9 @@ class ResNet1D(tf.keras.Model):
         super().__init__()
         self.inp_shape = input_shape
         self.UQ = UQ
+        self.num_filters = num_filters
+        self.kernel_sizes = kernel_sizes
+        self.strides = strides
         self.input_layer = tf.keras.layers.Input(shape=self.inp_shape)
         self.id_layers = [self.make_conv1d(filters=num_filters[i], k_size=(1), strides=(1))
                          for i in range(len(num_filters))]
@@ -288,9 +291,9 @@ class ResNet1D(tf.keras.Model):
         for i in range(len(self.num_filters)):
             # Add two reverse conv layers, one for conv and one to offset pooling
             self.up_sampling_layers.append(tf.keras.layers.UpSampling1D(size=2))
-            self.conv_layers_decode.append(tf.keras.layers.Conv1DTranspose(filters=self.num_filters[n_filters-i-1], kernel_size=3, strides=self.strides[n_filters-i-1], padding="same", activation="relu"))
-            self.id_layers_decode.append(tf.keras.layers.Conv1DTranspose(filters=self.num_filters[n_filters-i-1], kernel_size=3, strides=1, padding="same", activation="relu"))
-        self.conv_layers_decode.append(tf.keras.layers.Conv1D(filters=1, kernel_size=3, padding="same", activation="sigmoid"))
+            self.conv_layers_decode.append(tf.keras.layers.Conv1DTranspose(filters=self.num_filters[n_filters-i-1], kernel_size=self.kernel_sizes[n_filters-i-1], strides=self.strides[n_filters-i-1], padding="same", activation="relu"))
+            self.id_layers_decode.append(tf.keras.layers.Conv1DTranspose(filters=self.num_filters[n_filters-i-1], kernel_size=self.kernel_sizes[n_filters-i-1], strides=1, padding="same", activation="relu"))
+        self.conv_layers_decode.append(tf.keras.layers.Conv1D(filters=1, kernel_size=self.kernel_sizes[n_filters-i-1], padding="same", activation="sigmoid"))
         print(len(self.conv_layers_decode))
         self.dense_layer_decode = self.make_dense_layer(self.num_filters[-1], activation="relu")
 

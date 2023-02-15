@@ -191,24 +191,24 @@ def _train_SNGP(params, hyperopt=False):
                                               samples_per_anomaly_batch=num_samples_per_anomaly,
                                              num_anomalies_batch=num_anomalies,
                                              min_max_norm=[0., 0.04],
-                                             decoder=None, seed=seed_value)
+                                             decoder="left", seed=seed_value)
     val_generator = sg.SiameseDataGenerator(data_dir+'errantbeam_normal_val_traceid_Trace2_ns10.0_k_np96_nshift-1_Oct21AndFeb22_timestampFiltered_v0.npy',
                                             data_dir+'errantbeam_abnormal_val_traceid_Trace2_ns10.0_k_np96_nshift-1_Oct21AndFeb22_timestampFiltered_v0.npy',
                                             samples_per_anomaly_batch=num_samples_per_anomaly,
                                            num_anomalies_batch=num_anomalies,
                                             min_max_norm=[0., 0.04],
-                                           decoder=None, seed=seed_value)
+                                           decoder="left", seed=seed_value)
     test_generator = sg.SiameseDataGenerator(data_dir+'errantbeam_normal_test_traceid_Trace2_ns10.0_k_np96_nshift-1_Oct21AndFeb22_timestampFiltered_v0.npy',
                                             data_dir+'errantbeam_abnormal_test_traceid_Trace2_ns10.0_k_np96_nshift-1_Oct21AndFeb22_timestampFiltered_v0.npy',
                                             samples_per_anomaly_batch=num_samples_per_anomaly,
                                             num_anomalies_batch=num_anomalies,
                                             min_max_norm=[0., 0.04],
-                                            decoder=None, seed=seed_value)
+                                            decoder="left", seed=seed_value)
 
     strategy = tf.distribute.MirroredStrategy()
     with strategy.scope():
-        model = siameseModelWithResNet(UQ=False, 
-                                       decoder=None, 
+        model = siameseModelWithResNet(UQ=True, 
+                                       decoder="left", 
                                        num_filters=num_filters,
                                        strides=strides,
                                        kernel_sizes=kernel_size,
@@ -219,8 +219,7 @@ def _train_SNGP(params, hyperopt=False):
                                        dense_activations=dense_activation,
                                        distance_dropout=distance_dropout,
                                        distanceMetric=distance_metric,
-                                       input_shape=(10000, 1), 
-                                       dropPercentage=0.05, 
+                                       input_shape=(10000, 1),  
                                        lambdaShift=lambda_shift, 
                                        **{'activation':"sigmoid"})
 
@@ -248,19 +247,19 @@ def _train_SNGP(params, hyperopt=False):
                                               samples_per_anomaly_batch=15,
                                              num_anomalies_batch=1,
                                              min_max_norm=[0., 0.04],
-                                             decoder=None, seed=seed_value)
+                                             decoder="left", seed=seed_value)
     val_generator = sg.SiameseDataGenerator(data_dir+'errantbeam_normal_val_traceid_Trace2_ns10.0_k_np96_nshift-1_Oct21AndFeb22_timestampFiltered_v0.npy',
                                             data_dir+'errantbeam_abnormal_val_traceid_Trace2_ns10.0_k_np96_nshift-1_Oct21AndFeb22_timestampFiltered_v0.npy',
                                             samples_per_anomaly_batch=15,
                                            num_anomalies_batch=1,
                                             min_max_norm=[0., 0.04],
-                                           decoder=None, seed=seed_value)
+                                           decoder="left", seed=seed_value)
     test_generator = sg.SiameseDataGenerator(data_dir+'errantbeam_normal_test_traceid_Trace2_ns10.0_k_np96_nshift-1_Oct21AndFeb22_timestampFiltered_v0.npy',
                                             data_dir+'errantbeam_abnormal_test_traceid_Trace2_ns10.0_k_np96_nshift-1_Oct21AndFeb22_timestampFiltered_v0.npy',
                                             samples_per_anomaly_batch=15,
                                             num_anomalies_batch=1,
                                             min_max_norm=[0., 0.04],
-                                            decoder=None, seed=seed_value)
+                                            decoder="left", seed=seed_value)
 
 
     # Test the models
